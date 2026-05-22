@@ -1,0 +1,9 @@
+.venv/
+.env
+__pycache__/
+*.pyc
+# Generated locally by `make gendata`
+block_b/queries.csv
+block_b/qrels.csv
+block_b/runA.csv
+block_b/runB.csv

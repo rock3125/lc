@@ -1,0 +1,88 @@
+#!/usr/bin/env python3
+"""Seed pgvector with synthetic 'legal chunk' rows for the filtered-ANN task.
+
+Embeddings are random unit vectors — semantic quality is irrelevant here; the
+exercise is about how an ANN index interacts with metadata filters at low
+selectivity. Metadata is distributed so that (UK AND tax AND in_force) lands at
+roughly 0.2-0.3% of rows, i.e. a deliberately selective filter.
+"""
+import os
+import random
+import numpy as np
+import psycopg2
+from psycopg2.extras import execute_values
+
+N = int(os.getenv("N_ROWS", "50000"))
+DIM = int(os.getenv("DIM", "128"))
+DSN = os.getenv("DATABASE_URL", "postgresql://lc:lc@localhost:55432/lc")
+
+# UK ~20% of rows
+JURIS = ["NZ"] * 45 + ["AU"] * 35 + ["UK"] * 20
+# 20 practice areas -> tax ~5% of rows
+AREAS = [
+    "tax", "litigation", "property", "employment", "family", "immigration",
+    "commercial", "criminal", "ip", "construction", "banking", "insolvency",
+    "environment", "maritime", "tax_disputes", "trusts", "competition",
+    "privacy", "health", "energy",
+]
+
+
+def vec(rng):
+    v = rng.normal(size=DIM)
+    v /= np.linalg.norm(v)
+    return "[" + ",".join(f"{x:.5f}" for x in v) + "]"
+
+
+def main():
+    rng = np.random.default_rng(42)
+    random.seed(42)
+    conn = psycopg2.connect(DSN)
+    cur = conn.cursor()
+    cur.execute("CREATE EXTENSION IF NOT EXISTS vector;")
+    cur.execute("DROP TABLE IF EXISTS chunks;")
+    cur.execute(
+        f"""
+        CREATE TABLE chunks (
+            id            bigserial PRIMARY KEY,
+            content       text,
+            embedding     vector({DIM}),
+            jurisdiction  text,
+            practice_area text,
+            in_force      boolean,
+            doc_date      date
+        );
+        """
+    )
+
+#    rows = []
+#    for _ in range(N):
+#        rows.append(
+#            (
+#                vec(rng),
+#                random.choice(JURIS),
+#                random.choice(AREAS),
+#                random.random() < 0.25,  # in_force true ~25%
+#                f"20{random.randint(10, 25):02d}-{random.randint(1, 12):02d}-01",
+#            )
+#        )
+#    execute_values(
+#        cur,
+#        "INSERT INTO chunks (embedding, jurisdiction, practice_area, in_force, doc_date) VALUES %s",
+#        rows,
+#        template="(%s::vector, %s, %s, %s, %s)",
+#        page_size=1000,
+#    )
+    cur.execute("CREATE INDEX ON chunks USING hnsw (embedding vector_cosine_ops);")
+    conn.commit()
+
+#    cur.execute(
+#        "SELECT count(*) FROM chunks "
+#        "WHERE jurisdiction='UK' AND practice_area='tax' AND in_force=true;"
+#    )
+#    match = cur.fetchone()[0]
+#    print(f"Seeded {N} rows. Rows matching UK+tax+in_force: {match} ({100 * match / N:.3f}%)")
+    conn.close()
+
+
+if __name__ == "__main__":
+    main()
