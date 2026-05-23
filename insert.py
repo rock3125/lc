@@ -1,11 +1,16 @@
+from sentence_transformers import SentenceTransformer
 import psycopg2
 import numpy as np
 import sys
 import random
 
+# Load model once
+model = SentenceTransformer('all-MiniLM-L6-v2')
+
 def get_embedding(text):
-    # Generating random 128-dim vector as placeholder
-    return np.random.rand(128).tolist()
+    # Using real embeddings and truncating to 128-dim to match DB schema
+    embedding = model.encode(text)
+    return embedding[:128].tolist()
 
 def insert_text(text):
     conn = psycopg2.connect(

@@ -33,14 +33,14 @@ python insert.py "Rock test 4321"
 python3 search_with_filter.py "Rock test 1234" --practice_area tax --jurisdiction AU
 ```
 
-Top 5 matches for: Rock test 1234 (Jurisdiction: AU, Area: tax)
+Top 5 matches for: Rock test 1234 (Jurisdiction: AU, Area: tax (both randomly generated values))
 
 | Score | Content |
 | ----  | ------- |
-| 0.7861 | Rock test 1234 |
+| 0.8824 | Rock test 4321 |
 
 
-### secondly without filter - showing the flaw in vector search without positional encoding
+### secondly without filter
 
 ```bash
 python3 text_search.py "Rock test 1234"
@@ -50,7 +50,9 @@ Top 5 matches for: Rock test 1234
 
 | Score | Content |
 | ----- | ------- |
-| 0.7757 | Rock test 4321 |
-| 0.7659 | Rock test 1234 |
+| 1.0 | Rock test 1234 |
+| 0.8824 | Rock test 4321 |
+
+
 
 

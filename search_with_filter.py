@@ -1,12 +1,16 @@
+from sentence_transformers import SentenceTransformer
 import psycopg2
 import numpy as np
 import sys
 import argparse
 
+# Load model once
+model = SentenceTransformer('all-MiniLM-L6-v2')
+
 def get_embedding(text):
-    # Generating random 128-dim vector as placeholder
-    # In a real scenario, this would call your embedding model
-    return np.random.rand(128).tolist()
+    # Using real embeddings and truncating to 128-dim to match DB schema
+    embedding = model.encode(text)
+    return embedding[:128].tolist()
 
 def search_text(query_text, jurisdiction=None, practice_area=None):
     conn = psycopg2.connect(
